@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/hyperledger/aries-framework-go/pkg/vdr/peer"
+
 	"github.com/google/uuid"
 	"github.com/hyperledger/aries-framework-go/pkg/client/didexchange"
 	"github.com/hyperledger/aries-framework-go/pkg/client/outofband"
@@ -241,18 +243,19 @@ func (o *Operation) handleCreateConnReq(msg service.DIDCommMsg) (service.DIDComm
 	}
 
 	// create peer DID
-	newDidDoc, err := o.vdriRegistry.Create("peer", vdrapi.WithServices(did.Service{ServiceEndpoint: o.endpoint}))
+	docResolution, err := o.vdriRegistry.Create(peer.DIDMethod, &did.Doc{
+		Service: []did.Service{{ServiceEndpoint: o.endpoint}}})
 	if err != nil {
 		return nil, fmt.Errorf("create new peer did : %w", err)
 	}
 
 	// create connection
-	_, err = o.didExchange.CreateConnection(newDidDoc.ID, didDoc)
+	_, err = o.didExchange.CreateConnection(docResolution.DIDDocument.ID, didDoc)
 	if err != nil {
 		return nil, fmt.Errorf("create connection : %w", err)
 	}
 
-	newDocBytes, err := newDidDoc.JSONBytes()
+	newDocBytes, err := docResolution.DIDDocument.JSONBytes()
 	if err != nil {
 		return nil, fmt.Errorf("marshal did doc : %w", err)
 	}
